@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gift_admin
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: gift_recommender
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_transfer:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gift_admin -d gift_recommender"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata_transfer:

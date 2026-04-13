@@ -1,0 +1,99 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 9541.35it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+INFO:     Started server process [26739]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+Booting Gift Engine API...
+Category cache built: 1166 categories with full hierarchy paths.
+[BUDGET] Range: 0.0 - 500.0 TL (slider: None)
+Passing 525 Candidate Products & Profile: {'relationship': 'Anne', 'budget': 500.0, 'budget_min': 0.0, 'occasion': '', 'interests': ['kadın', 'parfüm', 'kozmetik', 'cilt bakım', 'makyaj', 'kişisel bakım', 'ruj', 'fondöten', 'göz kalemi', 'maskara', 'allık', 'makyaj seti', 'saç bakım'], 'preferred_colors': [], 'optional_features': {}} to Custom Engine.
+INFO:     127.0.0.1:49814 - "POST /api/recommend?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50723 - "OPTIONS /api/recommend?limit=12 HTTP/1.1" 200 OK
+[BUDGET] Range: 1000.0 - 2500.0 TL (slider: None)
+Passing 618 Candidate Products & Profile: {'relationship': 'Pürüzsüz yüzeyler; metal, cam. (Algoritma: Teknoloji, metalik, cam süs eşyası)', 'budget': 2500.0, 'budget_min': 1000.0, 'occasion': 'Doğum Günü', 'interests': ['erkek', '35 - 44', '1.000 - 2.500 tl', 'konsol', 'kutu oyunları', 'kahve & çay kültürü', 'teknoloji & elektronik', 'siyah / gri / antrasit:', 'hobi setleri', 'kitaplık', 'sanat', 'puzzle', 'düzenleyici', 'ajanda', 'organizer kutular', 'ev', 'mutfak', 'dekorasyon', 'çerçeve', 'nostalji', 'duygusal', 'kozmetik', 'parfüm', 'kitap', 'teknoloji', 'metalik', 'cam süs eşyası', 'elektronik', 'akıllı telefon ekipmanları'], 'preferred_colors': ['siyah', 'gri'], 'optional_features': {}} to Custom Engine.
+INFO:     127.0.0.1:50723 - "POST /api/recommend?limit=12 HTTP/1.1" 200 OK
+[BUDGET] Range: 2500.0 - 5000.0 TL (slider: None)
+Traceback (most recent call last):
+  File "/Users/rafet/Downloads/gift_project/api/main.py", line 234, in get_recommendations
+    try:
+  File "/Users/rafet/Downloads/gift_project/api/main.py", line 35, in get_db
+    return psycopg2.connect(
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+
+INFO:     127.0.0.1:51471 - "POST /api/recommend?limit=5 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51564 - "GET /api/questions HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+  File "/Users/rafet/Downloads/gift_project/.venv/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "/Users/rafet/Downloads/gift_project/api/main.py", line 115, in get_questions
+    """Serves the interactive questionnaire UI directly from the BA's markdown file."""
+  File "/Users/rafet/Downloads/gift_project/api/main.py", line 90, in parse_questions_md
+    questions_path = os.path.join(os.path.dirname(__file__), "..", "docs", "questions.md")
+FileNotFoundError: [Errno 2] No such file or directory: 'questions.md'
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26739]
+/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hediye Asistanı — AI Destekli Kişisel Hediye Önerici</title>
+    <meta name="description" content="Yapay zeka destekli hediye öneri sistemi. Kişilik analizine dayalı, bütçeye uygun mükemmel hediyeyi bulun.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="blob-bg"></div>
+    <div class="noise-overlay"></div>
+
+    <main class="app-container">
+        <!-- HERO -->
+        <header id="hero-header">
+            <div class="logo-mark">🎁</div>
+            <h1 class="gradient-text">Hediye Asistanı</h1>
+            <p class="subtitle">Yapay zeka ile kişiye özel, mükemmel hediyeyi bulalım.</p>
+        </header>
+
+        <!-- PROGRESS BAR -->
+        <div id="progress-bar-container" class="hidden">
+            <div class="progress-track">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <span id="progress-label" class="progress-label">Soru 1 / 14</span>
+        </div>
+
+        <!-- STEP WIZARD -->
+        <section id="wizard-section" class="glass-card">
+            <div id="step-container">
+                <!-- Single question rendered here at a time -->
+            </div>
+            <div id="wizard-nav" class="wizard-nav">
+                <button id="prev-btn" class="nav-btn" disabled>← Geri</button>
+                <button id="next-btn" class="nav-btn primary" disabled>İleri →</button>
+            </div>
+        </section>
+
+        <!-- BUDGET STEP (shown as the last wizard step) -->
+        <section id="budget-section" class="glass-card hidden">
+            <h3 class="step-title">💰 Maksimum bütçen nedir?</h3>
+            <p class="step-subtitle">Bütçe belirlemek zorunlu değil, ama daha doğru sonuçlar verir.</p>
+            <div class="budget-slider-group">
+                <input type="range" id="budget-slider" min="0" max="10000" step="100" value="1000">
+                <div class="budget-display">
+                    <span id="budget-value">1.000</span> <span class="currency">₺</span>
+                </div>
+            </div>
+            <div class="budget-presets">
+                <button class="preset-chip" data-val="250">250₺</button>
+                <button class="preset-chip" data-val="500">500₺</button>
+                <button class="preset-chip" data-val="1000">1.000₺</button>
+                <button class="preset-chip" data-val="2500">2.500₺</button>
+                <button class="preset-chip" data-val="5000">5.000₺</button>
+                <button class="preset-chip active" data-val="0">Sınır Yok</button>
+            </div>
+            <button id="submit-btn" class="glow-btn">🔍 Hediye Bul</button>
+        </section>
+
+        <!-- LOADER -->
+        <div id="loader" class="loader-container hidden">
+            <div class="spinner-ring">
+                <div></div><div></div><div></div><div></div>
+            </div>
+            <p class="loader-text">Kişilik vektörleri analiz ediliyor...</p>
+            <p class="loader-sub" id="loader-detail">100.000+ üründe arama yapılıyor</p>
+        </div>
+
+        <!-- RESULTS -->
+        <section id="results-section" class="hidden">
+            <div class="results-header">
+                <div>
+                    <h2>🎯 Sana Özel Öneriler</h2>
+                    <p class="results-subtitle" id="results-count"></p>
+                </div>
+                <button id="restart-btn" class="outline-btn">↻ Yeniden Başla</button>
+            </div>
+            <div id="results-grid" class="grid-container"></div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+pandas
+sentence-transformers
+psycopg2-binary
+tqdm
+python-slugify
+fastapi[standard]
+uvicorn
+pydantic
+scikit-learn

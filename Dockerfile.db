@@ -1,0 +1,28 @@
+FROM pgvector/pgvector:pg16
+
+ENV POSTGRES_USER=gift_admin
+ENV POSTGRES_PASSWORD=secure_password_123
+ENV POSTGRES_DB=gift_recommender
+ENV PGDATA=/embedded_pgdata
+
+COPY gift_recommender.dump /tmp/gift_recommender.dump
+
+USER root
+RUN mkdir -p /embedded_pgdata && chown -R postgres:postgres /embedded_pgdata
+
+USER postgres
+# Initialize PGDATA, start postgres, setup DB and restore, then stop cleanly
+RUN /usr/lib/postgresql/16/bin/initdb -D $PGDATA && \
+    /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -l $PGDATA/logfile start && \
+    sleep 3 && \
+    psql -c "CREATE USER gift_admin WITH PASSWORD 'secure_password_123' SUPERUSER;" -U postgres || true && \
+    psql -c "CREATE DATABASE gift_recommender OWNER gift_admin;" -U postgres || true && \
+    psql -d gift_recommender -c "CREATE EXTENSION IF NOT EXISTS vector;" -U postgres && \
+    pg_restore -U gift_admin -d gift_recommender -1 /tmp/gift_recommender.dump || true && \
+    /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -m fast -w stop
+
+USER root
+# Delete the dump file to reduce final image size
+RUN rm -f /tmp/gift_recommender.dump
+
+# We do not override CMD or ENTRYPOINT, the base image knows how to start it

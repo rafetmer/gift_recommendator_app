@@ -1,0 +1,90 @@
+time="2026-04-13T16:14:15+03:00" level=warning msg="/Users/rafet/Downloads/gift_project/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Image gift_project-postgres Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 543B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile.db
+#2 transferring dockerfile: 1.11kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/pgvector/pgvector:pg16
+#3 DONE 0.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/4] FROM docker.io/pgvector/pgvector:pg16@sha256:7d400e340efb42f4d8c9c12c6427adb253f726881a9985d2a471bf0eed824dff
+#5 resolve docker.io/pgvector/pgvector:pg16@sha256:7d400e340efb42f4d8c9c12c6427adb253f726881a9985d2a471bf0eed824dff 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 46B done
+#6 DONE 0.0s
+
+#7 [2/4] COPY gift_recommender.dump /tmp/gift_recommender.dump
+#7 CACHED
+
+#8 [3/4] RUN /usr/lib/postgresql/16/bin/initdb -D /embedded_pgdata &&     /usr/lib/postgresql/16/bin/pg_ctl -D /embedded_pgdata -l logfile start &&     sleep 3 &&     psql -c "CREATE USER gift_admin WITH PASSWORD 'secure_password_123' SUPERUSER;" -U postgres || true &&     psql -c "CREATE DATABASE gift_recommender OWNER gift_admin;" -U postgres || true &&     psql -d gift_recommender -c "CREATE EXTENSION IF NOT EXISTS vector;" -U postgres &&     pg_restore -U gift_admin -d gift_recommender -1 /tmp/gift_recommender.dump || true &&     /usr/lib/postgresql/16/bin/pg_ctl -D /embedded_pgdata -m fast -w stop
+#8 0.278 The files belonging to this database system will be owned by user "postgres".
+#8 0.278 This user must also own the server process.
+#8 0.278 
+#8 0.279 The database cluster will be initialized with locale "en_US.utf8".
+#8 0.279 The default database encoding has accordingly been set to "UTF8".
+#8 0.279 The default text search configuration will be set to "english".
+#8 0.279 
+#8 0.279 Data page checksums are disabled.
+#8 0.279 
+#8 0.279 creating directory /embedded_pgdata ... initdb: error: could not create directory "/embedded_pgdata": Permission denied
+#8 0.300 psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+#8 0.300 	Is the server running locally and accepting connections on that socket?
+#8 0.319 psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+#8 0.319 	Is the server running locally and accepting connections on that socket?
+#8 0.320 pg_ctl: directory "/embedded_pgdata" does not exist
+#8 ERROR: process "/bin/sh -c /usr/lib/postgresql/16/bin/initdb -D $PGDATA &&     /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -l logfile start &&     sleep 3 &&     psql -c \"CREATE USER gift_admin WITH PASSWORD 'secure_password_123' SUPERUSER;\" -U postgres || true &&     psql -c \"CREATE DATABASE gift_recommender OWNER gift_admin;\" -U postgres || true &&     psql -d gift_recommender -c \"CREATE EXTENSION IF NOT EXISTS vector;\" -U postgres &&     pg_restore -U gift_admin -d gift_recommender -1 /tmp/gift_recommender.dump || true &&     /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -m fast -w stop" did not complete successfully: exit code: 1
+------
+ > [3/4] RUN /usr/lib/postgresql/16/bin/initdb -D /embedded_pgdata &&     /usr/lib/postgresql/16/bin/pg_ctl -D /embedded_pgdata -l logfile start &&     sleep 3 &&     psql -c "CREATE USER gift_admin WITH PASSWORD 'secure_password_123' SUPERUSER;" -U postgres || true &&     psql -c "CREATE DATABASE gift_recommender OWNER gift_admin;" -U postgres || true &&     psql -d gift_recommender -c "CREATE EXTENSION IF NOT EXISTS vector;" -U postgres &&     pg_restore -U gift_admin -d gift_recommender -1 /tmp/gift_recommender.dump || true &&     /usr/lib/postgresql/16/bin/pg_ctl -D /embedded_pgdata -m fast -w stop:
+0.279 The default text search configuration will be set to "english".
+0.279 
+0.279 Data page checksums are disabled.
+0.279 
+0.279 creating directory /embedded_pgdata ... initdb: error: could not create directory "/embedded_pgdata": Permission denied
+0.300 psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+0.300 	Is the server running locally and accepting connections on that socket?
+0.319 psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+0.319 	Is the server running locally and accepting connections on that socket?
+0.320 pg_ctl: directory "/embedded_pgdata" does not exist
+------
+Dockerfile.db:12
+
+--------------------
+
+  11 |     # Initialize PGDATA, start postgres, setup DB and restore, then stop cleanly
+
+  12 | >>> RUN /usr/lib/postgresql/16/bin/initdb -D $PGDATA && \
+
+  13 | >>>     /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -l logfile start && \
+
+  14 | >>>     sleep 3 && \
+
+  15 | >>>     psql -c "CREATE USER gift_admin WITH PASSWORD 'secure_password_123' SUPERUSER;" -U postgres || true && \
+
+  16 | >>>     psql -c "CREATE DATABASE gift_recommender OWNER gift_admin;" -U postgres || true && \
+
+  17 | >>>     psql -d gift_recommender -c "CREATE EXTENSION IF NOT EXISTS vector;" -U postgres && \
+
+  18 | >>>     pg_restore -U gift_admin -d gift_recommender -1 /tmp/gift_recommender.dump || true && \
+
+  19 | >>>     /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -m fast -w stop
+
+  20 |     
+
+--------------------
+
+failed to solve: process "/bin/sh -c /usr/lib/postgresql/16/bin/initdb -D $PGDATA &&     /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -l logfile start &&     sleep 3 &&     psql -c \"CREATE USER gift_admin WITH PASSWORD 'secure_password_123' SUPERUSER;\" -U postgres || true &&     psql -c \"CREATE DATABASE gift_recommender OWNER gift_admin;\" -U postgres || true &&     psql -d gift_recommender -c \"CREATE EXTENSION IF NOT EXISTS vector;\" -U postgres &&     pg_restore -U gift_admin -d gift_recommender -1 /tmp/gift_recommender.dump || true &&     /usr/lib/postgresql/16/bin/pg_ctl -D $PGDATA -m fast -w stop" did not complete successfully: exit code: 1
+
+
+
+View build details: docker-desktop://dashboard/build/default/default/lkwirohv3qsgmts6nwgbidepg
+
