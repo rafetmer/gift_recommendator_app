@@ -6,9 +6,14 @@ from typing import List, Optional, Dict, Any
 import sys
 import os
 
-# Add scripts folder to path so we can import the friend's logic engine
+# Add scripts folder to path so we can import the enhanced recommender engine
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
-from recommender_engine import recommend_products_hybrid, embedding_model, create_user_text
+from recommender_engine import (
+    recommend_products_hybrid, 
+    embedding_model, 
+    create_user_text,
+    build_enriched_user_profile  # NEW: Profile enrichment
+)
 
 app = FastAPI(title="Gift Recommender API", description="AI powered gift engine")
 
@@ -119,122 +124,43 @@ def get_questions():
 @app.post("/api/recommend")
 def get_recommendations(req: RecommendRequest, limit: int = 10):
     """
-    Ingests frontend answers, maps them to the friend's strict user_profile,
-    pulls a large candidate pool from pgvector database, and executes 
-    the rule-based categorization logic (recommender_engine.py).
+    Enhanced endpoint using build_enriched_user_profile:
+    - Relationship-aware scoring
+    - Personality & lifestyle matching
+    - Confidence scores
+    - Rich Turkish explanations
     """
     import re
     
-    # ===== BUDGET RESOLUTION =====
-    # Extract BOTH lower and upper bounds from the price range
-    # "2.500 - 5.000 TL" → budget_min=2500, budget_max=5000
-    resolved_budget_min = 0
-    resolved_budget_max = None
+    print(f"\n🎯 Processing recommendation request...")
     
-    # First: Check if any questionnaire answer contains a budget range
-    for key, val in req.answers.items():
-        v_str = str(val[0]) if isinstance(val, list) else str(val)
-        cleaned = v_str.replace('.', '')  # Remove Turkish thousand separator dots
-        
-        # Match "500 - 1.000 TL", "2.500 - 5.000 TL" etc.
-        budget_match = re.search(r'(\d+)\s*-\s*(\d+)\s*TL', cleaned)
-        if budget_match:
-            resolved_budget_min = float(budget_match.group(1))
-            resolved_budget_max = float(budget_match.group(2))
-            break
-        # Handle "5.000 TL ve üzeri" — no upper limit
-        budget_match2 = re.search(r'(\d+)\s*TL\s*ve\s*üzeri', cleaned)
-        if budget_match2:
-            resolved_budget_min = float(budget_match2.group(1))
-            resolved_budget_max = 50000.0  # No real cap
-            break
+    # 1. BUILD ENRICHED USER PROFILE (new v2 feature)
+    user_profile = build_enriched_user_profile(req.answers)
     
-    # Slider value overrides the questionnaire — slider only sets upper bound
+    # Override budget with slider if provided
     if req.budget and req.budget > 0:
-        resolved_budget_max = req.budget
-        # If slider is used, keep min from questionnaire or default to 0
-        if resolved_budget_min > resolved_budget_max:
-            resolved_budget_min = 0
+        user_profile["budget"] = req.budget
+        if user_profile.get("budget_min", 0) > user_profile["budget"]:
+            user_profile["budget_min"] = 0
     
-    # Final fallback
-    if not resolved_budget_max:
-        resolved_budget_max = 50000.0
+    print(f"✓ User Profile Built:")
+    print(f"  - Relationship: {user_profile.get('relationship', 'N/A')}")
+    print(f"  - Budget: {user_profile.get('budget_min', 0)} - {user_profile.get('budget', 50000)} TL")
+    print(f"  - Color Personality: {user_profile.get('color_personality', 'N/A')}")
+    print(f"  - Lifestyle: {user_profile.get('lifestyle', 'N/A')}")
+    print(f"  - Zodiac: {user_profile.get('zodiac', 'N/A')}")
+    print(f"  - Interests: {user_profile.get('interests', [])[:5]}")
+    print(f"  - Specific Needs: {user_profile.get('specific_needs', [])[:3]}")
+
     
-    print(f"[BUDGET] Range: {resolved_budget_min} - {resolved_budget_max} TL (slider: {req.budget})")
-    
-    # 1. Map raw answers to explicit User Profile expected by recommender_engine
-    user_profile = {
-        "relationship": "",
-        "budget": resolved_budget_max,
-        "budget_min": resolved_budget_min,
-        "occasion": "",
-        "interests": [],
-        "preferred_colors": [],
-        "optional_features": {}
-    }
-
-    # Words that should ONLY set the relationship field, never enter interests
-    # This prevents "anne" from matching "Anne Bebek Bakım Çantası" products
-    RELATIONSHIP_WORDS = {"anne", "baba", "kardeş", "eş", "partner", "sevgili", 
-                          "arkadaş", "patron", "yönetici", "öğretmen", "akademisyen",
-                          "tanıdık", "kendime"}
-    OCCASION_WORDS = {"doğum günü", "yıl dönümü", "sevgililer günü", "anneler günü",
-                      "babalar günü", "yılbaşı", "mezuniyet", "yeni ev", "geçmiş olsun",
-                      "özür dileme", "içimden geldi"}
-
-    # Extract all Algoritma tags into interests to feed the categorization logic bonus
-    for key, val in req.answers.items():
-        if isinstance(val, list):
-            vals = val
-        else:
-            vals = [val]
-            
-        for v in vals:
-            v_lower = str(v).lower()
-            
-            # SKIP budget answers — they pollute interests with "tl", "500" etc.
-            if re.search(r'\d+\s*-\s*\d+\s*tl', v_lower) or 'tl ve üzeri' in v_lower:
-                continue
-            
-            # Check if this is a relationship answer — set relationship but DON'T add to interests
-            is_relationship = any(rw in v_lower for rw in RELATIONSHIP_WORDS)
-            if is_relationship:
-                user_profile["relationship"] = v
-            
-            # Check if this is an occasion answer
-            is_occasion = any(ow in v_lower for ow in OCCASION_WORDS)
-            if is_occasion:
-                user_profile["occasion"] = v
-                
-            # If the user selected colors (Soru 7)
-            if "siyah" in v_lower or "gri" in v_lower or "antrasit" in v_lower:
-                user_profile["preferred_colors"].extend(["siyah", "gri"])
-            if "sarı" in v_lower or "neon" in v_lower or "kırmızı" in v_lower:
-                user_profile["preferred_colors"].extend(["sarı", "kırmızı", "neon"])
-            if "pastel" in v_lower or "lila" in v_lower or "pembe" in v_lower:
-                user_profile["preferred_colors"].extend(["pembe", "lila", "soft"])
-            if "toprak" in v_lower or "ahşap" in v_lower:
-                user_profile["preferred_colors"].extend(["kahverengi", "ahşap", "doğal"])
-
-            # Map the AI Algorithm tags explicitly mapped in questions.md
-            match = re.search(r'\(Algoritma:\s*(.*?)\)', v)
-            if match:
-                tags = [t.strip().lower() for t in match.group(1).split(',')]
-                user_profile["interests"].extend(tags)
-            elif not is_relationship and not is_occasion:
-                # Only add generic words if they're NOT relationship/occasion answers
-                clean_v = re.sub(r'\(.*?\)', '', v).strip().lower()
-                if len(clean_v) > 2:
-                    user_profile["interests"].append(clean_v)
-
-    # Convert the rigorously built user_profile into a sentence for AI postgres pre-filtering
-    user_text = create_user_text(user_profile)
-    prompt_embedding = embedding_model.encode([user_text])[0].tolist()
-
     try:
         conn = get_db()
         with conn.cursor() as cur:
-            # ===== STAGE 1: Simple flat query — category hierarchy is resolved via CATEGORY_CACHE =====
+            # Build semantic text for database pre-filtering
+            user_text = create_user_text(user_profile)
+            prompt_embedding = embedding_model.encode([user_text])[0].tolist()
+            
+            # Query: Fetch candidates within budget with embedding pre-filter
             query = """
                 SELECT 
                     p.id, 
@@ -253,61 +179,63 @@ def get_recommendations(req: RecommendRequest, limit: int = 10):
                 WHERE p.is_active = TRUE
             """
             params = []
-
-            # Apply BOTH lower and upper budget constraints from the price range
-            if resolved_budget_max and resolved_budget_max < 50000:
-                query = query + " AND p.price_sale <= %s "
-                params.append(resolved_budget_max)
-            if resolved_budget_min and resolved_budget_min > 0:
-                query = query + " AND p.price_sale >= %s "
-                params.append(resolved_budget_min)
-                
-            # ===== STAGE 2: ILIKE keyword priority boost =====
-            order_cases = []
-            interests_list = user_profile.get("interests", []) or []
             
-            for word in interests_list:
+            # Apply budget constraints
+            budget_max = user_profile.get("budget", 50000)
+            budget_min = user_profile.get("budget_min", 0)
+            
+            if budget_max and budget_max < 50000:
+                query += " AND p.price_sale <= %s"
+                params.append(budget_max)
+            if budget_min and budget_min > 0:
+                query += " AND p.price_sale >= %s"
+                params.append(budget_min)
+            
+            # Keyword priority boost for interests
+            interests_list = user_profile.get("interests", []) or []
+            order_cases = []
+            
+            for word in interests_list[:8]:  # Limit to top 8 to avoid huge query
                 str_word = str(word)
-                if len(str_word) > 3:
-                    clean_word = str_word.replace("'", "")
+                if len(str_word) > 2:
+                    clean_word = str_word.replace("'", "").lower()
                     order_cases.append(f"p.name ILIKE '%%{clean_word}%%'")
-                    
+            
             if len(order_cases) > 0:
                 case_stmt = " + ".join([f"(CASE WHEN {c} THEN 1.0 ELSE 0.0 END)" for c in order_cases])
-                sql_addition = f" ORDER BY ({case_stmt}) DESC, pe.embedding <=> %s::vector LIMIT 800;"
+                sql_addition = f" ORDER BY ({case_stmt}) DESC, pe.embedding <=> %s::vector LIMIT 1000"
                 query = query + sql_addition
             else:
-                query = query + " ORDER BY pe.embedding <=> %s::vector LIMIT 800;"
-
+                query = query + " ORDER BY pe.embedding <=> %s::vector LIMIT 1000"
+            
             params.append(str(prompt_embedding))
-
+            
             cur.execute(query, tuple(params))
             db_rows = cur.fetchall()
-
+            
+            print(f"✓ Fetched {len(db_rows)} candidates from database")
+        
         conn.close()
-
-        # ===== STAGE 3: Transform with CACHED category hierarchy =====
+        
+        # Transform database rows to product objects
         unique_products = []
         seen = set()
-
+        
         for row in db_rows:
             pid, title, price, category_id, brand, rating, reviews, photo, url, discount = row
             key = (title, price)
             if key not in seen:
                 seen.add(key)
                 
-                # Look up the full category tree from the pre-computed cache
                 cat_info = CATEGORY_CACHE.get(str(category_id), {})
                 category_path = cat_info.get("full_path", "")
                 category_parts = cat_info.get("path_parts", [])
                 
-                # Inject ALL levels of the category hierarchy into tags
                 tags = []
                 for part in category_parts:
                     tags.append(str(part).lower())
-                if brand: 
+                if brand:
                     tags.append(str(brand).lower())
-                # Add individual words from the product title for deeper matching
                 if title:
                     for word in str(title).lower().split():
                         if len(word) > 3:
@@ -331,53 +259,60 @@ def get_recommendations(req: RecommendRequest, limit: int = 10):
                     "_brand": brand,
                     "_category_path": category_path
                 })
-
-        # 4. Execute the actual Custom Hybrid Script!
-        print(f"Passing {len(unique_products)} Candidate Products & Profile: {user_profile} to Custom Engine.")
+        
+        print(f"✓ Prepared {len(unique_products)} products")
+        
+        # Execute ENHANCED hybrid recommender
+        print(f"🚀 Running enhanced hybrid recommender...")
         eng_recommendations = recommend_products_hybrid(user_profile, unique_products, top_n=limit)
-
-        # 5. Format the results back strictly to what the Frontend expects
+        
+        print(f"✓ Generated {len(eng_recommendations)} recommendations")
+        
+        # Format results with confidence scores and rich explanations
         final_results = []
         for r in eng_recommendations:
-            # Find the original object to get our frontend metadata back
             orig = next((item for item in unique_products if item["product_id"] == r["product_id"]), None)
             
-            # Build rich Turkish rationale from the friend's English reason tags
+            # Build rich Turkish rationale
             reasons = r.get("reasons", [])
-            tr_parts = []
-            for reason in reasons:
-                rl = reason.lower()
-                if "within budget" in rl:
-                    tr_parts.append("💰 Bütçene uygun")
-                elif "matches interest" in rl or "category match" in rl:
-                    tr_parts.append("🎯 İlgi alanlarıyla eşleşiyor")
-                elif "matches color" in rl:
-                    tr_parts.append("🎨 Renk tercihine uygun")
-                elif "popular" in rl:
-                    tr_parts.append("⭐ Popüler ve yüksek puanlı")
-                else:
-                    tr_parts.append(f"✓ {reason}")
+            rationale_text = " · ".join(reasons) if reasons else "AI analiz sonucu önerildi"
             
-            score_val = r.get("final_score", 0)
-            if score_val > 0.6:
-                tr_parts.insert(0, "🔥 Yüksek eşleşme")
-            
-            rationale_text = " · ".join(tr_parts) if tr_parts else "AI analiz sonucu önerildi"
+            confidence = r.get("confidence", 0.5)
+            score = r.get("final_score", 0)
             
             final_results.append({
                 "product_id": r["product_id"],
                 "title": r["title"],
                 "price": r["price"],
-                "brand": orig["_brand"] if orig else 'Premium Partner',
+                "brand": orig["_brand"] if orig else 'Premium',
                 "category": orig["category"] if orig else '',
                 "photo_url": orig["_photo_url"] if orig else '',
                 "product_url": orig["_product_url"] if orig else '#',
-                "score": score_val,
-                "rationale": rationale_text
+                "score": score,
+                "confidence": confidence,
+                "rationale": rationale_text,
+                "metadata": {
+                    "rule_score": r.get("rule_score", 0),
+                    "embedding_score": r.get("embedding_score", 0),
+                    "reasons": reasons
+                }
             })
-
-        return {"status": "success", "recommendations": final_results}
-
+        
+        print(f"✓ Formatted {len(final_results)} results\n")
+        
+        return {
+            "status": "success",
+            "recommendations": final_results,
+            "profile_summary": {
+                "relationship": user_profile.get("relationship", ""),
+                "occasion": user_profile.get("occasion", ""),
+                "budget": f"{user_profile.get('budget_min', 0):.0f} - {user_profile.get('budget', 50000):.0f} TL",
+                "personality": user_profile.get("color_personality", ""),
+                "lifestyle": user_profile.get("lifestyle", ""),
+                "zodiac": user_profile.get("zodiac", "")
+            }
+        }
+    
     except Exception as e:
         import traceback
         print(traceback.format_exc())

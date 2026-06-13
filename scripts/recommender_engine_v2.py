@@ -291,19 +291,15 @@ def build_enriched_user_profile(raw_answers):
                         profile["occasion_boost"] = boost
                         break
             
-            # Q5: Budget - Parse "2.500 - 5.000 TL" or "5.000 TL ve üzeri"
-            # Remove Turkish thousand separators (dots) before parsing
-            v_clean = str(v).replace(".", "").replace(" ", "")
-            
-            budget_match = re.search(r'(\d+)-(\d+)', v_clean)
+            # Q5: Budget
+            budget_match = re.search(r'(\d+)\s*-\s*(\d+)\s*TL', v_lower)
             if budget_match:
-                profile["budget_min"] = float(budget_match.group(1))
-                profile["budget"] = float(budget_match.group(2))
-            else:
-                # Try "X TL ve üzeri" pattern
-                budget_match2 = re.search(r'(\d+)tl', v_clean, re.IGNORECASE)
+                profile["budget_min"] = float(budget_match.group(1).replace(".", ""))
+                profile["budget"] = float(budget_match.group(2).replace(".", ""))
+            elif "üzeri" in v_lower:
+                budget_match2 = re.search(r'(\d+)', v_lower)
                 if budget_match2:
-                    profile["budget_min"] = float(budget_match2.group(1))
+                    profile["budget_min"] = float(budget_match2.group(1).replace(".", ""))
                     profile["budget"] = 50000.0
             
             # Q6: Interests - extract algorithm tags
