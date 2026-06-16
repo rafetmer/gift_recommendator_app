@@ -397,6 +397,93 @@ def score_product_enhanced(user_profile, product, embedding_score):
     else:
         return 0, ["✗ Bütçe dışı"], 0.1
     
+    # 1.5 GENDER MATCH / PENALTY
+    gender = str(user_profile.get("gender", "") or "").lower()
+    title_text = str(product.get("title", "") or "").lower()
+    category_text = str(product.get("category", "") or "").lower()
+    product_text = f"{title_text} {category_text}"
+
+    has_unisex = "unisex" in product_text
+    has_male = "erkek" in product_text
+    has_female = "kadın" in product_text
+
+    if gender == "kadın":
+        if has_male and not has_unisex:
+            score -= 12
+            confidence = max(confidence - 0.30, 0.1)
+            reasons.append("⚠ Cinsiyet uyumsuzluğu: erkek ürünü")
+        elif has_female or has_unisex:
+            score += 2
+            confidence += 0.05
+            reasons.append("♀ Kadın/unisex ürün uyumu")
+
+    elif gender == "erkek":
+        if has_female and not has_unisex:
+            score -= 12
+            confidence = max(confidence - 0.30, 0.1)
+            reasons.append("⚠ Cinsiyet uyumsuzluğu: kadın ürünü")
+        elif has_male or has_unisex:
+            score += 2
+            confidence += 0.05
+            reasons.append("♂ Erkek/unisex ürün uyumu")
+
+    elif gender == "unisex":
+        if has_male or has_female:
+            score -= 5
+            confidence = max(confidence - 0.15, 0.1)
+            reasons.append("⚠ Unisex seçimde gendered ürün")
+        else:
+            score += 1
+            reasons.append("✓ Nötr ürün")
+
+    # 1.6 AGE / BABY CATEGORY PENALTY
+    age_range = str(user_profile.get("age_range", "") or "").lower()
+    relationship = str(user_profile.get("relationship", "") or "").lower()
+    category_text = str(product.get("category", "") or "").lower()
+    title_text = str(product.get("title", "") or "").lower()
+    product_text = f"{title_text} {category_text}"
+
+    baby_child_terms = ["bebek", "çocuk", "anne & çocuk", "bebek odası", "okul öncesi"]
+
+    is_baby_child_product = any(term in product_text for term in baby_child_terms)
+    is_child_recipient = (
+        "çocuk" in relationship
+        or "bebek" in relationship
+        or "18 yaş altı" in age_range
+    )
+
+    if is_baby_child_product and not is_child_recipient:
+        score -= 10
+        confidence = max(confidence - 0.25, 0.1)
+        reasons.append("⚠ Yaş/ilişki uyumsuzluğu: bebek/çocuk ürünü")
+    
+    # 1.7 OCCASION-SPECIFIC CATEGORY BOOST / PENALTY
+    occasion = str(user_profile.get("occasion", "") or "").lower()
+    category_text = str(product.get("category", "") or "").lower()
+    title_text = str(product.get("title", "") or "").lower()
+    product_text = f"{title_text} {category_text}"
+
+    if "yeni ev" in occasion:
+        home_terms = [
+            "ev", "dekor", "dekorasyon", "vazo", "mum", "tablo",
+            "battaniye", "nevresim", "mutfak", "kahve", "kupa",
+            "mobilya", "ev tekstili"
+        ]
+
+        fashion_outdoor_terms = [
+            "ayakkabı", "çanta", "bot", "ceket", "spor & outdoor",
+            "giyim", "kozmetik", "parfüm"
+        ]
+
+        if any(term in product_text for term in home_terms):
+            score += 8
+            confidence = min(confidence + 0.15, 1.0)
+            reasons.append("🏠 Yeni ev hediyesine uygun")
+        elif any(term in product_text for term in fashion_outdoor_terms):
+            score -= 8
+            confidence = max(confidence - 0.20, 0.1)
+            reasons.append("⚠ Yeni ev için düşük uygunluk")
+    
     # 2. INTEREST MATCH (category + tags)
     user_interests = set(user_profile.get("interests", []))
     product_tags = set(product.get("tags", []))
@@ -528,17 +615,21 @@ def create_product_text(product):
 def create_user_text(user_profile):
     """Create semantic text for user profile."""
     parts = []
-    
-    # Add all rich signals
-    parts.extend(user_profile.get("interests", []))
-    parts.extend(user_profile.get("personality_colors", []))
-    parts.extend(user_profile.get("specific_needs", []))
-    parts.extend(user_profile.get("zodiac_traits", []))
-    
-    parts.append(user_profile.get("relationship", ""))
-    parts.append(user_profile.get("occasion", ""))
-    parts.append(user_profile.get("lifestyle", ""))
-    
+
+    parts.extend(user_profile.get("interests", []) or [])
+    parts.extend(user_profile.get("personality_colors", []) or [])
+    parts.extend(user_profile.get("specific_needs", []) or [])
+    parts.extend(user_profile.get("zodiac_traits", []) or [])
+
+    parts.append(user_profile.get("relationship") or "")
+    parts.append(user_profile.get("gender") or "")
+    parts.append(user_profile.get("occasion") or "")
+    parts.append(user_profile.get("lifestyle") or "")
+    parts.append(user_profile.get("zodiac") or "")
+    parts.append(user_profile.get("color_personality") or "")
+
+    parts = [str(p) for p in parts if p is not None and str(p).strip() != ""]
+
     return " ".join(parts).lower()
 
 ########################## EMBEDDING SIMILARITY ##########################
