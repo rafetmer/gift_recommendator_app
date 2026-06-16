@@ -281,22 +281,22 @@ def get_recommendations(req: RecommendRequest, limit: int = 10):
             score = r.get("final_score", 0)
             
             final_results.append({
-                "product_id": r["product_id"],
-                "title": r["title"],
-                "price": r["price"],
-                "brand": orig["_brand"] if orig else 'Premium',
-                "category": orig["category"] if orig else '',
-                "photo_url": orig["_photo_url"] if orig else '',
-                "product_url": orig["_product_url"] if orig else '#',
-                "score": score,
-                "confidence": confidence,
-                "rationale": rationale_text,
-                "metadata": {
-                    "rule_score": r.get("rule_score", 0),
-                    "embedding_score": r.get("embedding_score", 0),
-                    "reasons": reasons
-                }
-            })
+            "product_id": str(r["product_id"]),
+            "title": str(r["title"]),
+            "price": float(r["price"]),
+            "brand": str(orig["_brand"]) if orig and orig["_brand"] else "Premium",
+            "category": str(orig["category"]) if orig else "",
+            "photo_url": str(orig["_photo_url"]) if orig and orig["_photo_url"] else "",
+            "product_url": str(orig["_product_url"]) if orig and orig["_product_url"] else "#",
+            "score": float(r.get("final_score", 0)),
+            "confidence": float(r.get("confidence", 0.5)),
+            "rationale": str(rationale_text),
+            "metadata": {
+                "rule_score": float(r.get("rule_score", 0)),
+                "embedding_score": float(r.get("embedding_score", 0)),
+                "reasons": [str(x) for x in reasons]
+            }
+        })
         
         print(f"✓ Formatted {len(final_results)} results\n")
         
