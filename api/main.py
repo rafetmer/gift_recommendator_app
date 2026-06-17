@@ -1,10 +1,11 @@
 import psycopg2
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
 import os
+import json
 
 # Add scripts folder to path so we can import the enhanced recommender engine
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
@@ -40,6 +41,46 @@ def get_db():
     return psycopg2.connect(
         host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER, password=DB_PASS
     )
+
+def init_log_table():
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS api_logs (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    request_answers JSONB,
+                    user_profile JSONB,
+                    budget NUMERIC,
+                    recommended_product_ids JSONB
+                )
+            """)
+        conn.commit()
+        conn.close()
+        print("API Logs table initialized.")
+    except Exception as e:
+        print(f"Warning: Could not initialize log table: {e}")
+
+init_log_table()
+
+def log_recommendation_to_db(answers: dict, profile: dict, budget: float, product_ids: list):
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO api_logs (request_answers, user_profile, budget, recommended_product_ids)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                json.dumps(answers, ensure_ascii=False),
+                json.dumps(profile, ensure_ascii=False),
+                budget,
+                json.dumps(product_ids)
+            ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Failed to log recommendation: {e}")
 
 # ===== PRE-COMPUTED CATEGORY HIERARCHY CACHE =====
 # This runs ONCE at server startup, materializing the recursive tree into a Python dict.
@@ -122,7 +163,7 @@ def get_questions():
 
 
 @app.post("/api/recommend")
-def get_recommendations(req: RecommendRequest, limit: int = 10):
+def get_recommendations(req: RecommendRequest, background_tasks: BackgroundTasks, limit: int = 10):
     """
     Enhanced endpoint using build_enriched_user_profile:
     - Relationship-aware scoring
@@ -299,6 +340,9 @@ def get_recommendations(req: RecommendRequest, limit: int = 10):
         })
         
         print(f"✓ Formatted {len(final_results)} results\n")
+        
+        final_product_ids = [r["product_id"] for r in final_results]
+        background_tasks.add_task(log_recommendation_to_db, req.answers, user_profile, req.budget or 0.0, final_product_ids)
         
         return {
             "status": "success",
