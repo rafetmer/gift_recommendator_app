@@ -31,10 +31,10 @@ print("Booting Gift Engine API...")
 
 # PostgreSQL Connection settings
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = "5432"
-DB_NAME = "gift_recommender"
-DB_USER = "gift_admin"
-DB_PASS = "secure_password_123"
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "gift_recommender")
+DB_USER = os.getenv("DB_USER", "gift_admin")
+DB_PASS = os.getenv("DB_PASS", "secure_password_123")
 
 def get_db():
     return psycopg2.connect(
